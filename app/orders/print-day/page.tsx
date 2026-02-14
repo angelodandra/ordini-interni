@@ -5,12 +5,13 @@ import { supabase } from "@/lib/supabaseBrowser";
 import Link from "next/link";
 
 type Row = {
-  product_id: number;
+product_id: number;
   cod: string;
   description: string;
   kg: number;
   cs: number;
   pz: number;
+  has_override: boolean;
 };
 
 function todayISO() {
@@ -47,7 +48,7 @@ export default function PrintDayByProductPage() {
 
     const { data, error } = await supabase
       .from("order_items")
-      .select("id,unit_type,qty_units,product_id,products(cod,description),orders!inner(order_date)")
+      .select("id,unit_type,qty_units,description_override,product_id,products(cod,description),orders!inner(order_date)")
       .gte("orders.order_date", fromDate)
       .lte("orders.order_date", toDate)
       .limit(20000);
@@ -63,8 +64,10 @@ export default function PrintDayByProductPage() {
       const unit = (it.unit_type ?? "").toString().toUpperCase();
       const qty = Number(it.qty_units ?? 0);
 
-      if (!map.has(pid)) map.set(pid, { product_id: pid, cod, description, kg: 0, cs: 0, pz: 0 });
+      if (!map.has(pid)) map.set(pid, { product_id: pid, cod, description, kg: 0, cs: 0, pz: 0, has_override: false });
       const r = map.get(pid)!;
+
+      if ((it as any).description_override) r.has_override = true;
 
       if (unit === "KG") r.kg += qty;
       else if (unit === "CS") r.cs += qty;
@@ -164,7 +167,7 @@ export default function PrintDayByProductPage() {
                     rel="noopener noreferrer"
                     href={`/products/print-one?cod=${encodeURIComponent(r.cod)}&from=${fromDate}&to=${toDate}`}
                   >
-                    {r.cod}
+                    {r.cod}{r.has_override ? " ✎" : ""}
                   </Link>
                 </td>
                 <td className="desc" title={r.description}>{r.description}</td>

@@ -9,6 +9,9 @@ type OrderRow = {
   order_date: string;
   customers: { name: string } | null;
   status: string | null;
+
+  is_recurring?: boolean | null;
+  recurring_order_id?: number | null;
 };
 
 function todayISO() {
@@ -62,7 +65,7 @@ export default function OrdersPage() {
 
     const { data, error } = await supabase
       .from("orders")
-      .select("id,order_date,status,customers(name),order_items(id,qty_units)")
+      .select("id,order_date,status,recurring_order_id,is_recurring,customers(name),order_items(id,qty_units)")
       .gte("order_date", f)
       .lte("order_date", t)
       .order("order_date", { ascending: true })
@@ -81,6 +84,8 @@ export default function OrdersPage() {
         order_date: o.order_date,
         status: o.status,
         customers: o.customers,
+        is_recurring: o.is_recurring,
+        recurring_order_id: o.recurring_order_id,
         _count: (o.order_items ?? []).filter((x: any) => Number(x.qty_units ?? 0) > 0).length,
       }))
       .filter((o: any) => o._count > 0)
@@ -109,9 +114,53 @@ export default function OrdersPage() {
     await load(t, t);
   };
 
+
+  const materializeRecurring = async (dateISO: string) => {
+    try {
+      const r = await fetch("/api/admin/materialize-recurring", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ order_date: dateISO }),
+      });
+
+      const ct = r.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) throw new Error("API non disponibile (risposta non JSON)");
+
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || "Errore");
+
+      alert(`Ricorrenti creati: ${j.created} | Saltati: ${j.skipped}`);
+      await load(); // ricarica lista ordini
+    } catch (e) {
+      alert((e && e.message) ? e.message : "Errore");
+    }
+  };
+
   return (
     <main style={{ padding: 20, fontFamily: "system-ui, sans-serif" }}>
-      <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Ordini</h1>
+      
+      <div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={() => materializeRecurring(new Date().toISOString().slice(0,10))}
+          style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#111", color: "#fff", fontWeight: 900 }}
+        >
+          Genera ricorrenti OGGI
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            const d = new Date();
+            d.setDate(d.getDate() + 1);
+            materializeRecurring(d.toISOString().slice(0,10));
+          }}
+          style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", color: "#111", fontWeight: 900 }}
+        >
+          Genera ricorrenti DOMANI
+        </button>
+      </div>
+<h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Ordini</h1>
       <div style={{ marginTop: 6, fontWeight: 800, opacity: 0.8 }}>{subtitle}</div>
 
       <div
@@ -206,6 +255,21 @@ export default function OrdersPage() {
         >
           + Nuovo ordine
         </Link>
+
+        <Link
+          href="/orders/recurring"
+          style={{
+            padding: "10px 14px",
+            borderRadius: 12,
+            border: "1px solid #111",
+            textDecoration: "none",
+            fontWeight: 900,
+            color: "#111",
+            background: "#f5f5f5"
+          }}
+        >
+          🔁 Ricorrenti
+        </Link>
       </div>
 
       {err ? <pre style={{ color: "crimson", marginTop: 12 }}>{err}</pre> : null}
@@ -225,10 +289,28 @@ export default function OrdersPage() {
               color: "#111",
             }}
           >
-            <div style={{ fontSize: 16, fontWeight: 900 }}>{o.customers?.name ?? ""}</div>
+            <div style={{ fontSize: 16, fontWeight: 900, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+    <span>{o.customers?.name ?? ""}</span>
+    {o.is_recurring ? (
+      <span style={{
+        padding: "2px 8px",
+        borderRadius: 999,
+        background: "#111",
+        color: "#fff",
+        fontWeight: 900,
+        fontSize: 12,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6
+      }}>
+        🔁 RIC
+      </span>
+    ) : null}
+  </div>
             <div style={{ marginTop: 4, opacity: 0.75, fontWeight: 800 }}>
               {formatDateNice(o.order_date)}
-            </div>
+            
+              <span style={{ marginLeft: 10, fontSize: 12, opacity: 0.8 }}></span></div>
           </Link>
         ))}
 

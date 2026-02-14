@@ -126,9 +126,9 @@ export function OrderPrintLayout({
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                   }}
-                  title={desc}
+                  title={`${desc}${i.description_override ? " (OVR)" : ""}`}
                 >
-                  {desc}
+                  {desc}{i.description_override ? " (OVR)" : ""}
                 </div>
               ) : null}
             </div>

@@ -15,6 +15,15 @@ export default function RootLayout({
   return (
     <html lang="it">
       <body style={{ margin: 0, fontFamily: "system-ui, sans-serif" }}>
+        <style>{`
+          @media print {
+            header { display: none !important; }
+            nav { display: none !important; }
+            .no-print { display: none !important; }
+            body { background: white !important; }
+          }
+        `}</style>
+
         <TopNav />
         <main>{children}</main>
       </body>

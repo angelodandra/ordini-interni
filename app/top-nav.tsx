@@ -164,7 +164,9 @@ export default function TopNav() {
             <div style={{ fontWeight: 900, opacity: 0.7 }}>ADMIN</div>
             <AdminLink href="/customers" label="Clienti" />
             <AdminLink href="/products" label="Prodotti" />
-          </div>
+          
+            <AdminLink href="/prints/cleanup" label="Pulizia DB" />
+</div>
         </div>
       ) : null}
     </header>

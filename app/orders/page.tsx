@@ -39,6 +39,7 @@ export default function OrdersPage() {
   const [rows, setRows] = useState<OrderRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [myRole, setMyRole] = useState<string>("viewer");
 
   const subtitle = useMemo(() => {
     if (!fromDate || !toDate) return "";
@@ -46,7 +47,15 @@ export default function OrdersPage() {
     return `${fromDate} → ${toDate}`;
   }, [fromDate, toDate]);
 
-  const load = async (fd?: string, td?: string) => {
+    const loadMyRole = async () => {
+    const { data } = await supabase.auth.getUser();
+    const uid = data?.user?.id;
+    if (!uid) return setMyRole("viewer");
+    const { data: p } = await supabase.from("profiles").select("role").eq("id", uid).maybeSingle();
+    setMyRole((p?.role ?? "viewer").toString());
+  };
+
+const load = async (fd?: string, td?: string) => {
     const f = fd ?? fromDate;
     const t = td ?? toDate;
 
@@ -117,6 +126,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     load(fromDate, toDate);
+    loadMyRole();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -189,7 +199,9 @@ export default function OrdersPage() {
         style={{
           marginTop: 14,
           padding: 12,
-          border: "1px solid #ddd",
+          border: "1px solid var(--brand-100)",
+              background: "var(--card)",
+              boxShadow: "var(--shadow)",
           borderRadius: 14,
           display: "flex",
           gap: 10,
@@ -203,7 +215,9 @@ export default function OrdersPage() {
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
-            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", marginLeft: 6 }}
+            style={{ padding: 10, borderRadius: 10, border: "1px solid var(--brand-100)",
+              background: "var(--card)",
+              boxShadow: "var(--shadow)", marginLeft: 6 }}
           />
         </label>
 
@@ -213,7 +227,9 @@ export default function OrdersPage() {
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}
-            style={{ padding: 10, borderRadius: 10, border: "1px solid #ddd", marginLeft: 6 }}
+            style={{ padding: 10, borderRadius: 10, border: "1px solid var(--brand-100)",
+              background: "var(--card)",
+              boxShadow: "var(--shadow)", marginLeft: 6 }}
           />
         </label>
 
@@ -271,7 +287,7 @@ export default function OrdersPage() {
             borderRadius: 12,
             border: "1px solid #111",
             textDecoration: "none",
-            fontWeight: 900,  position: "relative",
+            fontWeight: 900,
             
             color: "#111",
           }}
@@ -293,6 +309,23 @@ export default function OrdersPage() {
         >
           🔁 Ricorrenti
         </Link>
+        {(myRole === "admin" || myRole === "master") ? (
+          <Link
+            href="/admin/users"
+            style={{
+              padding: "10px 14px",
+              borderRadius: 12,
+              border: "1px solid #111",
+              textDecoration: "none",
+              fontWeight: 900,
+              color: "#111",
+              background: "#f5f5f5"
+            }}
+          >
+            👤 Utenti
+          </Link>
+        ) : null}
+
       </div>
 
       {err ? <pre style={{ color: "crimson", marginTop: 12 }}>{err}</pre> : null}
@@ -305,58 +338,75 @@ export default function OrdersPage() {
             href={`/orders/${o.id}`}
             style={{
               display: "block",
-              padding: 14,
+              padding: "10px 12px",
+              paddingRight: 90,
+              position: "relative",
               borderRadius: 14,
-              border: "1px solid #ddd",
+              border: "1px solid var(--brand-100)",
+              background: "var(--card)",
+              boxShadow: "var(--shadow)",
               textDecoration: "none",
               color: "#111",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-  <div style={{ flex: 1, minWidth: 0 }}>
-<div style={{ fontSize: 16, fontWeight: 900, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-    <span>{o.customers?.name ?? ""}</span>
-    {o.is_recurring ? (
-      <span style={{
-        padding: "2px 8px",
-        borderRadius: 999,
-        background: "#111",
-        color: "#fff",
-        fontWeight: 900,
-        fontSize: 12,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6
-      }}>
-        🔁 RIC
-      </span>
-    ) : null}
-    </div>
-  <button
-    type="button"
-    onClick={(e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      deleteOrder(o.id);
-    }}
-    style={{
-      padding: "8px 10px",
-      borderRadius: 12,
-      border: "1px solid #d11",
-      background: "#fff",
-      color: "#d11",
-      fontWeight: 900,
-      cursor: "pointer",
-      whiteSpace: "nowrap",
-    }}
-  >Elimina</button>
-</div>
-</div>
-            <div style={{ marginTop: 4, opacity: 0.75, fontWeight: 800 }}>
-              {formatDateNice(o.order_date)}
             
-              <span style={{ marginLeft: 10, fontSize: 12, opacity: 0.8 }}></span></div>
-          </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, fontWeight: 900 }}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {o.customers?.name ?? ""}
+                </span>
+
+                {o.is_recurring ? (
+                  <span
+                    style={{
+                      padding: "2px 8px",
+                      borderRadius: 999,
+                      background: "#111",
+                      color: "#fff",
+                      fontWeight: 900,
+                      fontSize: 12,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      flex: "0 0 auto",
+                    }}
+                  >
+                    🔁 RIC
+                  </span>
+                ) : null}
+              </div>
+
+              <div style={{ marginLeft: "auto", fontWeight: 800, opacity: 0.75, whiteSpace: "nowrap" }}>
+                {formatDateNice(o.order_date)}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                deleteOrder(o.id);
+              }}
+              style={{
+                position: "absolute",
+                top: 10,
+                right: 10,
+                padding: "4px 8px",
+                borderRadius: 10,
+                border: "1px solid #d11",
+                background: "#fff",
+                color: "#d11",
+                fontWeight: 900,
+                fontSize: 12,
+                lineHeight: 1,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Elimina
+            </button>
+</Link>
         ))}
 
         {rows.length === 0 && !err && !loading ? (

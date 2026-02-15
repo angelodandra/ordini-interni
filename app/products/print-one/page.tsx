@@ -265,6 +265,13 @@ export default function PrintOneProductPage() {
         @page { size: A4 portrait; margin: 10mm; }
         @media print { .no-print { display: none !important; } body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 
+@media screen and (max-width: 520px){
+          table th:nth-child(5),
+          table td:nth-child(5){
+            display:none;
+          }
+        }
+
         .bar { padding: 12px 14px; border-bottom: 1px solid #ddd; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .bar input { padding: 10px; border-radius: 10px; border: 1px solid #ddd; }
         .btn { padding: 10px 14px; border-radius: 10px; border: 1px solid #111; background: white; font-weight: 900; cursor: pointer; }
@@ -278,6 +285,12 @@ export default function PrintOneProductPage() {
         .pill { border: 2px solid #000; border-radius: 999px; padding: 6px 12px; font-weight: 900; }
 
         table { width: 100%; border-collapse: collapse; table-layout: fixed; border-left: 1px solid #000; }
+
+@media screen and (max-width: 520px){
+          table { table-layout: auto; }
+          th:first-child, td:first-child { width: 50%; }
+          .cust { white-space: normal; }
+        }
         th, td { border-bottom: 1px solid #000; border-right: 1px solid #000; padding: 6px 6px; vertical-align: middle; font-size: 11px; }
         th { border-bottom: 2px solid #000; text-align: left; }
         .num { text-align: right; font-weight: 900; white-space: nowrap; }
@@ -381,7 +394,7 @@ export default function PrintOneProductPage() {
               <th style={{ width: 70 }} className="num">KG</th>
               <th style={{ width: 70 }} className="num">CS</th>
               <th style={{ width: 70 }} className="num">PZ</th>
-              <th style={{ width: 220 }}>PESO / NOTE</th>
+              <th style={{ width: 120 }}>PESO / NOTE</th>
             </tr>
           </thead>
           <tbody>

@@ -38,8 +38,11 @@ export async function POST(req: Request) {
     let created = 0;
     let skipped = 0;
 
+    
+    
     for (const r of recurring) {
-      // 2) crea ordine se non esiste già (vincolo unico gestisce duplicati)
+      const recurringId = r.id;
+
       const { data: orderInserted, error: eIns } = await supabaseServer
         .from("orders")
         .insert({
@@ -53,8 +56,12 @@ export async function POST(req: Request) {
         .single();
 
       if (eIns) {
-        // duplicato -> skipped
         if ((eIns as any).code === "23505") {
+          await supabaseServer
+            .from("recurring_orders")
+            .update({ last_materialized_at: order_date })
+            .eq("id", recurringId);
+
           skipped++;
           continue;
         }
@@ -64,7 +71,6 @@ export async function POST(req: Request) {
       const newOrderId = orderInserted?.id;
       if (!newOrderId) continue;
 
-      // 3) copia righe ricorrenti nell'ordine
       const { data: items, error: eIt } = await supabaseServer
         .from("recurring_order_items")
         .select("product_id,unit_type,qty_units,description_override,position")
@@ -73,7 +79,7 @@ export async function POST(req: Request) {
 
       if (eIt) return NextResponse.json({ ok: false, error: eIt.message }, { status: 500 });
 
-      const rows = (items ?? []).map((it: any) => ({
+      const rows = (items ?? []).map((it) => ({
         order_id: newOrderId,
         product_id: it.product_id,
         unit_type: it.unit_type,
@@ -88,9 +94,15 @@ export async function POST(req: Request) {
       }
 
       created++;
+
+      await supabaseServer
+        .from("recurring_orders")
+        .update({ last_materialized_at: order_date })
+        .eq("id", recurringId);
     }
 
     return NextResponse.json({ ok: true, created, skipped });
+
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err?.message ?? "Errore" }, { status: 500 });
   }

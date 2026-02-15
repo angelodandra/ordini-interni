@@ -9,7 +9,8 @@ type Recurring = {
   is_active: boolean;
   days_of_week: number[];
   customers: { name: string } | null;
-};
+
+  last_materialized_at: string | null;};
 
 function formatDays(days: number[] = []) {
   const map: Record<number, string> = {
@@ -44,7 +45,7 @@ export default function RecurringOrdersPage() {
   const load = async () => {
     const { data, error } = await supabase
       .from("recurring_orders")
-      .select("id,is_active,days_of_week,customers(name)")
+      .select("id,is_active,days_of_week,customers(name),last_materialized_at")
       .order("id", { ascending: false });
 
     if (error) setErr(error.message);
@@ -87,60 +88,75 @@ export default function RecurringOrdersPage() {
                 <th style={{ textAlign: "left", padding: 8 }}>Cliente</th>
                 <th style={{ textAlign: "left", padding: 8 }}>Giorni</th>
                 <th style={{ textAlign: "left", padding: 8 }}>Stato</th>
+                <th style={{ textAlign: "left", padding: 8 }}>Ultima generazione</th>
                 <th style={{ textAlign: "left", padding: 8 }}>Azioni</th>
-</tr>
+              </tr>
             </thead>
+
             <tbody>
               {rows.map((r) => (
                 <tr
-                key={r.id}
-                style={{ cursor: "pointer" }}
-                onClick={() => (window.location.href = `/orders/recurring/${r.id}`)}
-              >
+                  key={r.id}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => (window.location.href = `/orders/recurring/${r.id}`)}
+                >
                   <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
                     {r.customers?.name ?? "-"}
                   </td>
+
                   <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
                     {formatDays(r.days_of_week)}
                   </td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eee", whiteSpace: "nowrap" }}>
-                  {r.is_active ? "Attivo" : "Disattivo"}
-                </td>
 
-                <td style={{ padding: 10, borderBottom: "1px solid #eee", whiteSpace: "nowrap" }}>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleActive(r.id, !r.is_active); }}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 10,
-                      border: "1px solid #111",
-                      background: r.is_active ? "#fff" : "#111",
-                      color: r.is_active ? "#111" : "#fff",
-                      fontWeight: 900,
-                      marginRight: 8
-                    }}
-                  >
-                    {r.is_active ? "Sospendi" : "Riattiva"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteRecurring(r.id); }}
-                    style={{
-                      padding: "6px 10px",
-                      borderRadius: 10,
-                      border: "1px solid #d11",
-                      background: "#fff",
-                      color: "#d11",
-                      fontWeight: 900
-                    }}
-                  >
-                    Elimina
-                  </button>
-                </td>
-                  <td style={{ padding: 8, borderTop: "1px solid #eee" }}>
+                  <td style={{ padding: 8, borderTop: "1px solid #eee", whiteSpace: "nowrap" }}>
                     {r.is_active ? "Attivo" : "Disattivo"}
+                  </td>
+
+                  <td style={{ padding: 8, borderTop: "1px solid #eee", whiteSpace: "nowrap" }}>
+                    {(r as any).last_materialized_at
+                      ? new Date((r as any).last_materialized_at).toLocaleDateString("it-IT")
+                      : "-"}
+                  </td>
+
+                  <td style={{ padding: 8, borderTop: "1px solid #eee", whiteSpace: "nowrap" }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleActive(r.id, !r.is_active);
+                      }}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 10,
+                        border: "1px solid #111",
+                        background: r.is_active ? "#fff" : "#111",
+                        color: r.is_active ? "#111" : "#fff",
+                        fontWeight: 900,
+                        marginRight: 8,
+                      }}
+                    >
+                      {r.is_active ? "Sospendi" : "Riattiva"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteRecurring(r.id);
+                      }}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 10,
+                        border: "1px solid #d11",
+                        background: "#fff",
+                        color: "#d11",
+                        fontWeight: 900,
+                      }}
+                    >
+                      Elimina
+                    </button>
                   </td>
                 </tr>
               ))}

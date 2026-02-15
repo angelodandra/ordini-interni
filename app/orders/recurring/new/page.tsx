@@ -61,7 +61,7 @@ export default function NewRecurringOrderPage() {
     if (!selectedCustomer) return setErr("Seleziona un cliente");
     if (days.length === 0) return setErr("Seleziona almeno un giorno");
 
-    const { error } = await supabase.from("recurring_orders").insert({
+    const { error } = await supabase.from("recurring_orders").upsert({
       customer_id: selectedCustomer.id,
       is_active: isActive,
       days_of_week: days,

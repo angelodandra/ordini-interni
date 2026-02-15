@@ -111,25 +111,32 @@ export default function PrintAllPage() {
       });
     }
 
-    // raggruppa per cliente
+    // raggruppa per cliente + data (un foglio per giorno)
     const map: Record<string, ClientGroup> = {};
     for (const ord of orders) {
       const cname = (ord.customers?.name || "").toString().trim() || "—";
-      const key = (ord.customer_id != null ? String(ord.customer_id) : `order-${ord.id}`);
-
       const orderItems = itemsByOrder[ord.id] ?? [];
       // se l'ordine è vuoto, lo ignoriamo (evita stampe vuote)
       if (orderItems.length === 0) continue;
 
-      if (!map[key]) {
-        map[key] = { key, customerName: cname, dates: [], items: [] };
-      }
-      map[key].dates.push(ord.order_date);
-      map[key].items.push(...orderItems);
+      const key = `${ord.customer_id != null ? String(ord.customer_id) : "order-" + ord.id}|${ord.order_date}`;
+
+      // ogni chiave è (cliente,data) -> NON accorpiamo più giorni insieme
+      map[key] = {
+        key,
+        customerName: cname,
+        dates: [ord.order_date],
+        items: orderItems,
+      };
     }
 
     // lista ordinata per nome
-    const list = Object.values(map).sort((a,b) => a.customerName.localeCompare(b.customerName, "it"));
+    const list = Object.values(map).sort((a, b) => {
+      const da = [...a.dates].sort()[0];
+      const db = [...b.dates].sort()[0];
+      if (da !== db) return da.localeCompare(db);
+      return a.customerName.localeCompare(b.customerName, "it");
+    });
 
     setGroups(list);
 
@@ -229,8 +236,11 @@ export default function PrintAllPage() {
 
       {/* STAMPE: 1 FOGLIO PER CLIENTE */}
       <div style={{ marginTop: 14 }}>
-        {selectedGroups.map((g, idx) => (
-          <div
+        {selectedGroups.map((g, idx) => {
+          const uniqueDates = Array.from(new Set(g.dates)).sort();
+          const dateInfo = uniqueDates.length === 1 ? labelFromISO(uniqueDates[0]) : rangeLabel;
+          return (
+            <div
             key={g.key}
             style={{
               pageBreakAfter: idx === selectedGroups.length - 1 ? "auto" : "always",
@@ -238,12 +248,13 @@ export default function PrintAllPage() {
           >
             <OrderPrintLayout
               customerName={g.customerName}
-              workDateLabel={rangeLabel}
+              workDateLabel={dateInfo}
               items={g.items}
               mode={mode}
             />
           </div>
-        ))}
+        );
+        })}
       </div>
     </div>
   );

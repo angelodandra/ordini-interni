@@ -95,6 +95,26 @@ export default function OrdersPage() {
     setLoading(false);
   };
 
+  const deleteOrder = async (id: number) => {
+    if (!confirm("Eliminare definitivamente questo ordine?")) return;
+
+    const { error: e1 } = await supabase
+      .from("order_items")
+      .delete()
+      .eq("order_id", id);
+
+    if (e1) return alert(e1.message);
+
+    const { error: e2 } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", id);
+
+    if (e2) return alert(e2.message);
+
+    await load();
+  };
+
   useEffect(() => {
     load(fromDate, toDate);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,11 +159,12 @@ export default function OrdersPage() {
   return (
     <main style={{ padding: 20, fontFamily: "system-ui, sans-serif" }}>
       
+      
       <div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button
           type="button"
-          onClick={() => materializeRecurring(new Date().toISOString().slice(0,10))}
-          style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#111", color: "#fff", fontWeight: 900 }}
+          onClick={() => materializeRecurring(new Date().toISOString().slice(0, 10))}
+          style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", color: "#111", fontWeight: 900 }}
         >
           Genera ricorrenti OGGI
         </button>
@@ -153,13 +174,14 @@ export default function OrdersPage() {
           onClick={() => {
             const d = new Date();
             d.setDate(d.getDate() + 1);
-            materializeRecurring(d.toISOString().slice(0,10));
+            materializeRecurring(d.toISOString().slice(0, 10));
           }}
           style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", color: "#111", fontWeight: 900 }}
         >
           Genera ricorrenti DOMANI
         </button>
       </div>
+
 <h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Ordini</h1>
       <div style={{ marginTop: 6, fontWeight: 800, opacity: 0.8 }}>{subtitle}</div>
 
@@ -244,12 +266,13 @@ export default function OrdersPage() {
         <Link
           href="/orders/new"
           style={{
-            marginLeft: "auto",
+            marginLeft: 0,
             padding: "10px 14px",
             borderRadius: 12,
             border: "1px solid #111",
             textDecoration: "none",
-            fontWeight: 900,
+            fontWeight: 900,  position: "relative",
+            
             color: "#111",
           }}
         >
@@ -289,7 +312,9 @@ export default function OrdersPage() {
               color: "#111",
             }}
           >
-            <div style={{ fontSize: 16, fontWeight: 900, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+  <div style={{ flex: 1, minWidth: 0 }}>
+<div style={{ fontSize: 16, fontWeight: 900, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
     <span>{o.customers?.name ?? ""}</span>
     {o.is_recurring ? (
       <span style={{
@@ -306,7 +331,27 @@ export default function OrdersPage() {
         🔁 RIC
       </span>
     ) : null}
-  </div>
+    </div>
+  <button
+    type="button"
+    onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteOrder(o.id);
+    }}
+    style={{
+      padding: "8px 10px",
+      borderRadius: 12,
+      border: "1px solid #d11",
+      background: "#fff",
+      color: "#d11",
+      fontWeight: 900,
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+    }}
+  >Elimina</button>
+</div>
+</div>
             <div style={{ marginTop: 4, opacity: 0.75, fontWeight: 800 }}>
               {formatDateNice(o.order_date)}
             

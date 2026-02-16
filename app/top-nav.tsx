@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseBrowser";
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -13,8 +14,23 @@ function isActive(pathname: string, href: string) {
 export default function TopNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [myRole, setMyRole] = useState("viewer");
 
   useEffect(() => setOpen(false), [pathname]);
+
+  const loadMyRole = async () => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      const uid = data?.user?.id;
+      if (!uid) return setMyRole("viewer");
+      const { data: p } = await supabase.from("profiles").select("role").eq("id", uid).maybeSingle();
+      setMyRole((p?.role ?? "viewer").toString());
+    } catch {
+      setMyRole("viewer");
+    }
+  };
+
+  useEffect(() => { loadMyRole(); }, []);
 
   const NavLink = ({ href, label }: { href: string; label: string }) => {
     const active = isActive(pathname, href);
@@ -36,6 +52,25 @@ export default function TopNav() {
         {label}
       </Link>
     );
+  };
+
+  const materializeRecurring = async (dateISO: string) => {
+    try {
+      const r = await fetch("/api/admin/materialize-recurring", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ order_date: dateISO }),
+      });
+
+      const ct = r.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) throw new Error("API non disponibile (risposta non JSON)");
+      const j = await r.json();
+      if (!j.ok) throw new Error(j.error || "Errore");
+
+      alert(`Ricorrenti creati: ${j.created} | Saltati: ${j.skipped}`);
+    } catch (e) {
+      alert((e && e.message) ? e.message : "Errore");
+    }
   };
 
   const AdminLink = ({ href, label }: { href: string; label: string }) => {
@@ -158,15 +193,66 @@ export default function TopNav() {
               margin: "0 auto",
               padding: 14,
               display: "grid",
-              gap: 10,
+              gap: 14,
             }}
           >
-            <div style={{ fontWeight: 900, opacity: 0.7 }}>ADMIN</div>
-            <AdminLink href="/customers" label="Clienti" />
-            <AdminLink href="/products" label="Prodotti" />
-          
-            <AdminLink href="/prints/cleanup" label="Pulizia DB" />
-</div>
+            <div>
+              <div style={{ fontWeight: 900, opacity: 0.7, marginBottom: 8 }}>RICORRENTI</div>
+
+              <div style={{ display: "grid", gap: 10 }}>
+                <AdminLink href="/orders/recurring" label="Clienti ricorrenti" />
+
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => materializeRecurring(new Date().toISOString().slice(0, 10))}
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      border: "1px solid #ddd",
+                      background: "#f5f5f5",
+                      fontWeight: 900,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Genera oggi
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() + 1);
+                      materializeRecurring(d.toISOString().slice(0, 10));
+                    }}
+                    style={{
+                      padding: "12px 14px",
+                      borderRadius: 12,
+                      border: "1px solid #ddd",
+                      background: "#f5f5f5",
+                      fontWeight: 900,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Genera domani
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontWeight: 900, opacity: 0.7, marginBottom: 8 }}>AMMINISTRAZIONE</div>
+              <div style={{ display: "grid", gap: 10 }}>
+                {(myRole === "admin" || myRole === "master") ? (
+                  <AdminLink href="/admin/users" label="Gestione utenti" />
+                ) : null}
+
+                <AdminLink href="/customers" label="Clienti" />
+                <AdminLink href="/products" label="Prodotti" />
+                <AdminLink href="/prints/cleanup" label="Pulizia DB" />
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
     </header>

@@ -153,46 +153,49 @@ const load = async (fd?: string, td?: string) => {
         body: JSON.stringify({ order_date: dateISO }),
       });
 
-      const ct = r.headers.get("content-type") || "";
-      if (!ct.includes("application/json")) throw new Error("API non disponibile (risposta non JSON)");
-
       const j = await r.json();
       if (!j.ok) throw new Error(j.error || "Errore");
 
       alert(`Ricorrenti creati: ${j.created} | Saltati: ${j.skipped}`);
-      await load(); // ricarica lista ordini
-    } catch (e) {
-      alert((e && e.message) ? e.message : "Errore");
+      await load();
+    } catch (e: any) {
+      alert(e?.message ?? "Errore");
     }
   };
 
   return (
     <main style={{ padding: 20, fontFamily: "system-ui, sans-serif" }}>
-      
-      
-      <div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <button
-          type="button"
-          onClick={() => materializeRecurring(new Date().toISOString().slice(0, 10))}
-          style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", color: "#111", fontWeight: 900 }}
-        >
-          Genera ricorrenti OGGI
-        </button>
 
-        <button
-          type="button"
-          onClick={() => {
-            const d = new Date();
-            d.setDate(d.getDate() + 1);
-            materializeRecurring(d.toISOString().slice(0, 10));
-          }}
-          style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", color: "#111", fontWeight: 900 }}
-        >
-          Genera ricorrenti DOMANI
-        </button>
-      </div>
 
-<h1 style={{ fontSize: 22, fontWeight: 900, margin: 0 }}>Ordini</h1>
+
+      <style>{`
+        .btn-ric{ cursor:pointer; transition:opacity 120ms ease; }
+        .btn-ric:hover{ opacity:0.85; }
+      `}</style>
+<div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+  <button className="btn-ric"
+    type="button"
+    onClick={() => materializeRecurring(new Date().toISOString().slice(0, 10))}
+    style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", fontWeight: 900 }}
+  >
+    Genera ricorrenti OGGI
+  </button>
+
+  <button className="btn-ric"
+    type="button"
+    onClick={() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      materializeRecurring(d.toISOString().slice(0, 10));
+    }}
+    style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", fontWeight: 900  }}
+  >
+    Genera ricorrenti DOMANI
+  </button>
+</div>
+
+<h1 style={{ fontSize: 22, fontWeight: 900, margin: 0  }}>Ordini</h1>
+
       <div style={{ marginTop: 6, fontWeight: 800, opacity: 0.8 }}>{subtitle}</div>
 
       <div
@@ -307,24 +310,9 @@ const load = async (fd?: string, td?: string) => {
             background: "#f5f5f5"
           }}
         >
-          🔁 Ricorrenti
+          🔁 Clienti ricorrenti
         </Link>
-        {(myRole === "admin" || myRole === "master") ? (
-          <Link
-            href="/admin/users"
-            style={{
-              padding: "10px 14px",
-              borderRadius: 12,
-              border: "1px solid #111",
-              textDecoration: "none",
-              fontWeight: 900,
-              color: "#111",
-              background: "#f5f5f5"
-            }}
-          >
-            👤 Utenti
-          </Link>
-        ) : null}
+        
 
       </div>
 

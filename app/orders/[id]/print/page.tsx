@@ -69,7 +69,7 @@ export default function OrderPrintPage() {
   }, [orderId, supabase]);
 
   const customerName = (order?.customers?.name || "").toString().trim() || "—";
-  const dateISO = getWorkDateISO(order?.order_date || "");
+  const dateISO = (order?.order_date ? String(order.order_date).slice(0,10) : getWorkDateISO());
   const dateLabel = labelFromISO(dateISO);
 
   const setMode = (m: PrintMode) => {

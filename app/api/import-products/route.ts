@@ -16,10 +16,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "CSV vuoto" }, { status: 400 });
     }
 
-    const parsed = Papa.parse<CsvRow>(csvText, {
+    const parsed = Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: (h) => h.trim().toLowerCase(),
+      transformHeader: (h: string) => h.trim().toLowerCase(),
     });
 
     if (parsed.errors?.length) {
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     }
 
     const rows = (parsed.data ?? [])
-      .map((r) => ({
+      .map((r: any) => ({
         cod: (r.cod ?? "").trim(),
         description: (r.descrizione ?? "").trim(),
       }))
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Nessuna riga valida" }, { status: 400 });
     }
 
-    const payload = rows.map((r) => ({
+    const payload = rows.map((r: any) => ({
       cod: r.cod || null,
       description: r.description || "(senza descrizione)",
     }));

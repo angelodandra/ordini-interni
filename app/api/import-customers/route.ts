@@ -16,10 +16,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "CSV vuoto" }, { status: 400 });
     }
 
-    const parsed = Papa.parse<CsvRow>(csvText, {
+    const parsed = Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
-      transformHeader: (h) => h.trim().toLowerCase(),
+      transformHeader: (h: string) => h.trim().toLowerCase(),
     });
 
     if (parsed.errors?.length) {
@@ -30,19 +30,19 @@ export async function POST(req: Request) {
     }
 
     const rows = (parsed.data ?? [])
-      .map((r) => ({
+      .map((r: CsvRow) => ({
         code: (r.cod ?? "").trim(),
         name: (r.descrizione ?? "").trim(),
       }))
-      .filter((r) => r.code || r.name);
+      .filter((r: { code: string; name: string }) => r.code || r.name);
 
     if (rows.length === 0) {
       return NextResponse.json({ error: "Nessuna riga valida" }, { status: 400 });
     }
 
-    const payload = rows.map((r) => ({
-      code: r.code || null,
-      name: r.name || "(senza nome)",
+    const payload = rows.map((r: CsvRow) => ({
+      code: r.cod || null,
+      name: r.descrizione || "(senza nome)",
     }));
 
     const { error } = await supabaseServer

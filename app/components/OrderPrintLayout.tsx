@@ -27,7 +27,7 @@ export function OrderPrintLayout({
   const pageWidth = isThermal ? 280 : isA4 ? 740 : 520;
   const fontBase = isThermal ? 11 : isA4 ? 12 : 12;
   const codeSize = isThermal ? 13 : 13;
-  const descSize = isThermal ? 10 : 10;
+  const descSize = isThermal ? 12 : (isA4 ? 13 : 12);
 
   return (
     <div

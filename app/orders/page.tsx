@@ -14,14 +14,18 @@ type OrderRow = {
   recurring_order_id?: number | null;
 };
 
+function italyISO(d: Date) {
+  return d.toLocaleDateString("sv-SE", { timeZone: "Europe/Rome" });
+}
+
 function todayISO() {
-  return new Date().toISOString().split("T")[0];
+  return italyISO(new Date());
 }
 
 function tomorrowISO() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
-  return d.toISOString().split("T")[0];
+  return italyISO(d);
 }
 
 function formatDateNice(dateStr: string) {
@@ -175,7 +179,7 @@ const load = async (fd?: string, td?: string) => {
 <div style={{ marginBottom: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
   <button className="btn-ric"
     type="button"
-    onClick={() => materializeRecurring(new Date().toISOString().slice(0, 10))}
+    onClick={() => materializeRecurring(todayISO())}
     style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", fontWeight: 900 }}
   >
     Genera ricorrenti OGGI
@@ -184,9 +188,7 @@ const load = async (fd?: string, td?: string) => {
   <button className="btn-ric"
     type="button"
     onClick={() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      materializeRecurring(d.toISOString().slice(0, 10));
+      materializeRecurring(tomorrowISO());
     }}
     style={{ padding: "10px 14px", borderRadius: 12, border: "1px solid #111", background: "#fff", fontWeight: 900  }}
   >

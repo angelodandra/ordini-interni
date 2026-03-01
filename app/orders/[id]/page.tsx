@@ -34,6 +34,9 @@ export default function OrderDetailPage() {
   const [items, setItems] = useState<OrderItem[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
+  const [editOrderDate, setEditOrderDate] = useState<string>("");
+  const [savingOrderDate, setSavingOrderDate] = useState(false);
+
   // ricerca prodotto
   const [productQuery, setProductQuery] = useState("");
   const [productResults, setProductResults] = useState<Product[]>([]);
@@ -77,6 +80,7 @@ const [activeIndex, setActiveIndex] = useState(-1);
     }
     setErr(null);
     setOrder(data as Order);
+    setEditOrderDate(String((data as any)?.order_date ?? "").slice(0, 10));
   };
 
   const loadItems = async () => {
@@ -212,6 +216,19 @@ setProductQuery(`${p.cod ?? ""} - ${p.description}`);
 
   const isLocked = order?.status === "printed";
 
+  const saveOrderDate = async () => {
+    if (isLocked) return alert("Ordine stampato: non puoi modificare.");
+    const v = String(editOrderDate || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return alert("Data non valida (YYYY-MM-DD)");
+
+    setSavingOrderDate(true);
+    const { error } = await supabase.from("orders").update({ order_date: v }).eq("id", orderId);
+    setSavingOrderDate(false);
+
+    if (error) return alert(error.message);
+    await loadOrder();
+  };
+
   const addItem = async () => {
     if (isLocked) return alert("Ordine stampato: non puoi modificare.");
     if (!selectedProduct) return alert("Seleziona un prodotto");
@@ -333,9 +350,39 @@ setProductQuery(`${p.cod ?? ""} - ${p.description}`);
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 900 }}>Ordine #{order.id}</h1>
       <div style={{ marginTop: 6, fontWeight: 900 }}>Cliente: {order?.customers?.name ?? ""}</div>
-          <div style={{ marginTop: 6, opacity: 0.9 }}>
-            Data: <strong>{order.order_date}</strong> · Stato:{" "}
-            <strong style={{ color: statusColor }}>{statusLabel}</strong>
+          <div style={{ marginTop: 6, opacity: 0.9, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <div>
+              Data:{" "}
+              {isLocked ? (
+                <strong>{order.order_date}</strong>
+              ) : (
+                <input
+                  type="date"
+                  value={editOrderDate}
+                  onChange={(e) => setEditOrderDate(e.target.value)}
+                  style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid #111", fontWeight: 900 }}
+                />
+              )}{" "}
+              · Stato: <strong style={{ color: statusColor }}>{statusLabel}</strong>
+            </div>
+
+            {!isLocked ? (
+              <button
+                type="button"
+                onClick={saveOrderDate}
+                disabled={savingOrderDate}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 10,
+                  border: "1px solid #111",
+                  background: savingOrderDate ? "#f2f2f2" : "white",
+                  fontWeight: 900,
+                  cursor: savingOrderDate ? "not-allowed" : "pointer",
+                }}
+              >
+                {savingOrderDate ? "Salvo..." : "Salva data"}
+              </button>
+            ) : null}
           </div>
           {isLocked ? (
             <div style={{ marginTop: 6, color: "crimson", fontWeight: 900 }}>

@@ -44,12 +44,20 @@ export default function OrdersPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [myRole, setMyRole] = useState<string>("viewer");
+  const [q, setQ] = useState<string>("");
 
   const subtitle = useMemo(() => {
     if (!fromDate || !toDate) return "";
     if (fromDate === toDate) return formatDateNice(fromDate);
     return `${fromDate} → ${toDate}`;
   }, [fromDate, toDate]);
+
+
+  const filteredRows = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return rows;
+    return rows.filter((o) => ((o.customers?.name ?? "").toString().toLowerCase()).includes(needle));
+  }, [rows, q]);
 
     const loadMyRole = async () => {
     const { data } = await supabase.auth.getUser();
@@ -238,7 +246,26 @@ const load = async (fd?: string, td?: string) => {
           />
         </label>
 
-        <button
+                <label style={{ fontWeight: 900 }}>
+          Cliente{" "}
+          <input
+            type="text"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cerca cliente..."
+            style={{
+              padding: 10,
+              borderRadius: 10,
+              border: "1px solid var(--brand-100)",
+              background: "var(--card)",
+              boxShadow: "var(--shadow)",
+              marginLeft: 6,
+              minWidth: 220,
+            }}
+          />
+        </label>
+
+<button
           type="button"
           onClick={setToday}
           style={{
@@ -322,7 +349,7 @@ const load = async (fd?: string, td?: string) => {
       {loading ? <div style={{ marginTop: 12, opacity: 0.7, fontWeight: 800 }}>Carico...</div> : null}
 
       <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-        {rows.map((o) => (
+        {filteredRows.map((o) => (
           <Link
             key={o.id}
             href={`/orders/${o.id}`}
@@ -399,7 +426,7 @@ const load = async (fd?: string, td?: string) => {
 </Link>
         ))}
 
-        {rows.length === 0 && !err && !loading ? (
+        {filteredRows.length === 0 && !err && !loading ? (
           <div style={{ padding: 12, opacity: 0.7 }}>Nessun ordine in questo intervallo.</div>
         ) : null}
       </div>

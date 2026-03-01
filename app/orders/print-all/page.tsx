@@ -9,6 +9,7 @@ type OrderRow = {
   order_date: string;
   customer_id: number | null;
   customers: { name: string | null } | null;
+  notes: string | null;
 };
 
 type ItemRow = {
@@ -37,6 +38,7 @@ type ClientGroup = {
   key: string; // customer_id o fallback
   customerName: string;
   dates: string[]; // date presenti nel range
+  notes?: string | null;
   items: ItemRow[];
 };
 
@@ -49,6 +51,8 @@ export default function PrintAllPage() {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const qDebounced = useDebouncedValue(q, 250);
 
   const rangeLabel = useMemo(() => {
     if (fromDate === toDate) return labelFromISO(fromDate);
@@ -62,7 +66,7 @@ export default function PrintAllPage() {
     
     const { data: o, error: e1 } = await supabase
       .from("orders")
-      .select("id,order_date,customer_id,customers(name)")
+      .select("id,order_date,customer_id,notes,customers(name)")
       .gte("order_date", fromDate)
       .lte("order_date", toDate)
       .order("customer_id", { ascending: true })
@@ -127,6 +131,7 @@ export default function PrintAllPage() {
         customerName: cname,
         dates: [ord.order_date],
         items: orderItems,
+        notes: (ord as any).notes ?? null,
       };
     }
 
@@ -153,13 +158,19 @@ export default function PrintAllPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const shownGroups = useMemo(() => {
+    const t = qDebounced.trim().toLowerCase();
+    if (t.length < 2) return groups;
+    return groups.filter((g) => g.customerName.toLowerCase().includes(t));
+  }, [groups, qDebounced]);
+
   const toggleAll = (v: boolean) => {
-    const n: Record<string, boolean> = {};
-    for (const g of groups) n[g.key] = v;
+    const n: Record<string, boolean> = { ...selected };
+    for (const g of shownGroups) n[g.key] = v;
     setSelected(n);
   };
 
-  const selectedGroups = groups.filter((g) => selected[g.key]);
+  const selectedGroups = shownGroups.filter((g) => selected[g.key]);
 
   return (
     <div style={{ paddingBottom: 40 }}>
@@ -175,6 +186,17 @@ export default function PrintAllPage() {
           <div>
             <div style={{ fontWeight: 900, marginBottom: 4 }}>Al</div>
             <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} style={inp} />
+          </div>
+
+          <div style={{ minWidth: 240 }}>
+            <div style={{ fontWeight: 900, marginBottom: 4 }}>Cerca cliente</div>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Scrivi nome cliente…"
+              style={inp}
+              inputMode="search"
+            />
           </div>
 
           <button type="button" onClick={load} style={btn(true)}>Cerca</button>
@@ -194,17 +216,17 @@ export default function PrintAllPage() {
           <button type="button" onClick={() => toggleAll(true)} style={btn(false)}>Seleziona tutti</button>
           <button type="button" onClick={() => toggleAll(false)} style={btn(false)}>Deseleziona tutti</button>
           <div style={{ opacity: 0.7 }}>
-            ({selectedGroups.length} / {groups.length})
+            ({selectedGroups.length} / {shownGroups.length})
           </div>
         </div>
 
         <div style={{ marginTop: 10, border: "1px solid #e5e5e5", borderRadius: 14, overflow: "hidden" }}>
           {loading ? (
             <div style={{ padding: 12, opacity: 0.7 }}>Caricamento…</div>
-          ) : groups.length === 0 ? (
+          ) : shownGroups.length === 0 ? (
             <div style={{ padding: 12, opacity: 0.7 }}>Nessun cliente con righe nell’intervallo.</div>
           ) : (
-            groups.map((g) => {
+            shownGroups.map((g) => {
               const uniqueDates = Array.from(new Set(g.dates)).sort();
               const dateInfo = uniqueDates.length === 1 ? labelFromISO(uniqueDates[0]) : rangeLabel;
               return (
@@ -250,6 +272,7 @@ export default function PrintAllPage() {
               customerName={g.customerName}
               workDateLabel={dateInfo}
               items={g.items}
+              notes={g.notes ?? ""}
               mode={mode}
             />
           </div>
@@ -287,4 +310,13 @@ function btn(active: boolean, primary?: boolean): React.CSSProperties {
     fontWeight: 900,
     cursor: "pointer",
   };
+}
+
+function useDebouncedValue(value, delayMs) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return v;
 }

@@ -15,14 +15,17 @@ export function OrderPrintLayout({
   workDateLabel,
   items,
   mode,
+  notes,
   orderNotes,
 }: {
   customerName: string;
   workDateLabel: string;
   items: Item[];
   mode: PrintMode;
+  notes?: string;
   orderNotes?: string;
 }) {
+  const finalNotes = (notes ?? orderNotes ?? "").toString();
   const isThermal = mode === "thermal";
   const isA4 = mode === "a4";
 
@@ -47,7 +50,7 @@ export function OrderPrintLayout({
           {customerName}
         </div>
         
-      {orderNotes && orderNotes.trim() ? (
+      {finalNotes && finalNotes.trim() ? (
         <div style={{
           marginTop: 10,
           padding: isThermal ? "6px 8px" : "8px 10px",
@@ -57,7 +60,7 @@ export function OrderPrintLayout({
           fontSize: isThermal ? 11 : 12,
           whiteSpace: "pre-wrap",
         }}>
-          NOTE ORDINE: {orderNotes.trim()}
+          NOTE ORDINE: {finalNotes.trim()}
         </div>
       ) : null}
 

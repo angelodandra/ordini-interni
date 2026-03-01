@@ -15,11 +15,13 @@ export function OrderPrintLayout({
   workDateLabel,
   items,
   mode,
+  orderNotes,
 }: {
   customerName: string;
   workDateLabel: string;
   items: Item[];
   mode: PrintMode;
+  orderNotes?: string;
 }) {
   const isThermal = mode === "thermal";
   const isA4 = mode === "a4";
@@ -44,7 +46,22 @@ export function OrderPrintLayout({
         <div style={{ fontWeight: 900, fontSize: isThermal ? 14 : 16 }}>
           {customerName}
         </div>
-        <div style={{ marginTop: 4, fontWeight: 900 }}>{workDateLabel}</div>
+        
+      {orderNotes && orderNotes.trim() ? (
+        <div style={{
+          marginTop: 10,
+          padding: isThermal ? "6px 8px" : "8px 10px",
+          border: "2px solid #111",
+          borderRadius: 10,
+          fontWeight: 900,
+          fontSize: isThermal ? 11 : 12,
+          whiteSpace: "pre-wrap",
+        }}>
+          NOTE ORDINE: {orderNotes.trim()}
+        </div>
+      ) : null}
+
+<div style={{ marginTop: 4, fontWeight: 900 }}>{workDateLabel}</div>
       </div>
 
       <div

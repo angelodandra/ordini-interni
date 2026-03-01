@@ -10,6 +10,7 @@ type OrderRow = {
   id: number;
   order_date: string;
   customers: { name: string | null } | null;
+  notes?: string | null;
 };
 
 type ItemRow = {
@@ -43,7 +44,7 @@ export default function OrderPrintPage() {
 
       const { data: o, error: e1 } = await supabase
         .from("orders")
-        .select("id,order_date,customers(name)")
+        .select("id,order_date,notes,customers(name)")
         .eq("id", orderId)
         .single();
 
@@ -102,7 +103,7 @@ export default function OrderPrintPage() {
 
       {/* CONTENUTO STAMPA */}
       <div style={{ marginTop: 10 }}>
-        <OrderPrintLayout customerName={customerName} workDateLabel={dateLabel} items={items} mode={mode} />
+        <OrderPrintLayout customerName={customerName} workDateLabel={dateLabel} items={items} mode={mode} orderNotes={(order?.notes ?? "").toString()} />
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ type Order = {
   customer_id: number | null;
   order_date: string;
   status: "open" | "printed" | "cancelled" | string;
+  notes?: string | null;
 };
 
 type Product = {
@@ -33,6 +34,8 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [items, setItems] = useState<OrderItem[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  const [notes, setNotes] = useState<string>("");
+  const [savingNotes, setSavingNotes] = useState(false);
 
   const [editOrderDate, setEditOrderDate] = useState<string>("");
   const [savingOrderDate, setSavingOrderDate] = useState(false);
@@ -70,7 +73,7 @@ const [activeIndex, setActiveIndex] = useState(-1);
 
   const loadOrder = async () => {
     const { data, error } = await supabase
-      .from("orders").select("id,customer_id,order_date,status,customers(name)")
+      .from("orders").select("id,customer_id,order_date,status,notes,customers(name)")
       .eq("id", orderId)
       .single();
 
@@ -81,9 +84,24 @@ const [activeIndex, setActiveIndex] = useState(-1);
     setErr(null);
     setOrder(data as Order);
     setEditOrderDate(String((data as any)?.order_date ?? "").slice(0, 10));
+      setNotes(String((data as any)?.notes ?? ""));
+};
+
+  
+  const saveNotes = async () => {
+    if (isLocked) return alert("Ordine stampato: non puoi modificare.");
+    setSavingNotes(true);
+    const { error } = await supabase
+      .from("orders")
+      .update({ notes: (notes || "").trim() || null })
+      .eq("id", orderId);
+
+    setSavingNotes(false);
+    if (error) return alert(error.message);
+    await loadOrder();
   };
 
-  const loadItems = async () => {
+const loadItems = async () => {
     const { data, error } = await supabase
       .from("order_items")
       .select("id,unit_type,qty_units,description_override,products(cod,description)")
@@ -416,7 +434,52 @@ setProductQuery(`${p.cod ?? ""} - ${p.description}`);
         </div>
       </div>
 
-      <section style={{ marginTop: 24 }}>
+      
+      <section style={{ marginTop: 18 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 900 }}>Note ordine</h2>
+
+        <div style={{ marginTop: 10, maxWidth: 720, opacity: isLocked ? 0.6 : 1 }}>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Scrivi una nota per la preparazione (verrà stampata nell'ordine)..."
+            rows={3}
+            style={{
+              width: "100%",
+              padding: 12,
+              borderRadius: 12,
+              border: "1px solid #ddd",
+              fontFamily: "inherit",
+              resize: "vertical",
+            }}
+            disabled={isLocked}
+          />
+
+          <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={saveNotes}
+              disabled={isLocked || savingNotes}
+              style={{
+                padding: "10px 14px",
+                borderRadius: 12,
+                border: "1px solid #111",
+                background: savingNotes ? "#f2f2f2" : "white",
+                fontWeight: 900,
+                cursor: (isLocked || savingNotes) ? "not-allowed" : "pointer",
+              }}
+            >
+              {savingNotes ? "Salvo..." : "Salva note"}
+            </button>
+
+            <div style={{ opacity: 0.7, fontWeight: 900 }}>
+              {isLocked ? "Bloccato (stampato)" : "Le note si stampano nell'ordine"}
+            </div>
+          </div>
+        </div>
+      </section>
+
+<section style={{ marginTop: 24 }}>
         <h2 style={{ fontSize: 16, fontWeight: 900 }}>Aggiungi prodotto</h2>
 
         <div style={{ marginTop: 10, maxWidth: 520, position: "relative", opacity: isLocked ? 0.6 : 1 }}>

@@ -51,6 +51,9 @@ export default function PrintOneProductPage() {
   const [rows, setRows] = useState<CustomerRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
 
+  const [customerQuery, setCustomerQuery] = useState("");
+  const customerQueryDebounced = useDebouncedValue(customerQuery, 250);
+
   // ✅ leggi parametri da URL una volta
   useEffect(() => {
     const urlCod = (sp.get("cod") ?? "").trim();
@@ -91,15 +94,21 @@ export default function PrintOneProductPage() {
     return `${fromDate} → ${toDate}`;
   }, [fromDate, toDate]);
 
+  const shownRows = useMemo(() => {
+    const t = customerQueryDebounced.trim().toLowerCase();
+    if (t.length < 2) return rows;
+    return rows.filter((r) => (r.customer_name || "").toLowerCase().includes(t));
+  }, [rows, customerQueryDebounced]);
+
   const totals = useMemo(() => {
     let kg = 0, cs = 0, pz = 0;
-    for (const r of rows) {
+    for (const r of shownRows) {
       kg += r.kg;
       cs += r.cs;
       pz += r.pz;
     }
     return { kg, cs, pz };
-  }, [rows]);
+  }, [shownRows]);
 
   // --- ricerca prodotti (priorità COD) ---
   useEffect(() => {
@@ -398,7 +407,7 @@ export default function PrintOneProductPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, idx) => (
+            {shownRows.map((r, idx) => (
               <tr key={idx}>
                 <td className="cust" title={r.customer_name}>{r.customer_name}</td>
                 <td className="num">{r.kg ? r.kg : ""}</td>
@@ -408,10 +417,10 @@ export default function PrintOneProductPage() {
               </tr>
             ))}
 
-            {rows.length === 0 ? (
+            {shownRows.length === 0 ? (
               <tr>
                 <td colSpan={5} style={{ padding: 10, opacity: 0.7 }}>
-                  Nessun dato per questo prodotto nell’intervallo selezionato.
+                  Nessun dato (o nessun cliente trovato) per questo prodotto nell’intervallo selezionato.
                 </td>
               </tr>
             ) : null}

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseBrowser";
 import Link from "next/link";
 
 type Row = {
-product_id: number;
+  product_id: number;
   cod: string;
   description: string;
   kg: number;
@@ -27,11 +27,33 @@ function formatDateNice(dateStr: string) {
   return `${dayName} ${dd}-${mm}`;
 }
 
+function useDebouncedValue<T>(value: T, delayMs: number) {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), delayMs);
+    return () => clearTimeout(t);
+  }, [value, delayMs]);
+  return v;
+}
+
 export default function PrintDayByProductPage() {
   const [fromDate, setFromDate] = useState(todayISO());
   const [toDate, setToDate] = useState(todayISO());
   const [rows, setRows] = useState<Row[]>([]);
   const [err, setErr] = useState<string | null>(null);
+
+  const [q, setQ] = useState("");
+  const qDebounced = useDebouncedValue(q, 250);
+
+  const shownRows = useMemo(() => {
+    const t = qDebounced.trim().toLowerCase();
+    if (t.length < 2) return rows;
+    return rows.filter((r) => {
+      const cod = (r.cod || "").toLowerCase();
+      const desc = (r.description || "").toLowerCase();
+      return cod.includes(t) || desc.includes(t);
+    });
+  }, [rows, qDebounced]);
 
   const subtitle = useMemo(() => {
     if (!fromDate || !toDate) return "";
@@ -64,7 +86,18 @@ export default function PrintDayByProductPage() {
       const unit = (it.unit_type ?? "").toString().toUpperCase();
       const qty = Number(it.qty_units ?? 0);
 
-      if (!map.has(pid)) map.set(pid, { product_id: pid, cod, description, kg: 0, cs: 0, pz: 0, has_override: false });
+      if (!map.has(pid)) {
+        map.set(pid, {
+          product_id: pid,
+          cod,
+          description,
+          kg: 0,
+          cs: 0,
+          pz: 0,
+          has_override: false,
+        });
+      }
+
       const r = map.get(pid)!;
 
       if ((it as any).description_override) r.has_override = true;
@@ -128,6 +161,16 @@ export default function PrintDayByProductPage() {
           Al <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
         </label>
 
+        <div>
+          <div style={{ fontWeight: 900, marginBottom: 4 }}>Cerca prodotto</div>
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="COD o descrizione…"
+            inputMode="search"
+          />
+        </div>
+
         <button className="btn" onClick={load}>Cerca</button>
         <button className="btn" onClick={onPrint}>🖨️ Stampa A4</button>
       </div>
@@ -158,7 +201,7 @@ export default function PrintDayByProductPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
+            {shownRows.map((r) => (
               <tr key={r.product_id}>
                 <td className="cod">
                   <Link
@@ -177,10 +220,10 @@ export default function PrintDayByProductPage() {
               </tr>
             ))}
 
-            {rows.length === 0 ? (
+            {shownRows.length === 0 ? (
               <tr>
                 <td colSpan={5} style={{ padding: 10, opacity: 0.7 }}>
-                  Nessun dato per questo intervallo.
+                  Nessun dato per questo intervallo{qDebounced.trim().length >= 2 ? " / filtro." : "."}
                 </td>
               </tr>
             ) : null}

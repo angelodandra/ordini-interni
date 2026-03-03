@@ -10,12 +10,19 @@ type Order = {
   order_date: string;
   status: "open" | "printed" | "cancelled" | string;
   notes?: string | null;
+  customers?: { name: string | null } | null;
 };
 
 type Product = {
   id: number;
   cod: string | null;
   description: string;
+};
+
+
+type Customer = {
+  id: number;
+  name: string;
 };
 
 type OrderItem = {
@@ -39,6 +46,16 @@ export default function OrderDetailPage() {
 
   const [editOrderDate, setEditOrderDate] = useState<string>("");
   const [savingOrderDate, setSavingOrderDate] = useState(false);
+
+  const isLocked = order?.status === "printed";
+
+
+
+
+  const [customerQuery, setCustomerQuery] = useState<string>("");
+  const [customerResults, setCustomerResults] = useState<Customer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [savingCustomer, setSavingCustomer] = useState(false);
 
   // ricerca prodotto
   const [productQuery, setProductQuery] = useState("");
@@ -85,6 +102,10 @@ const [activeIndex, setActiveIndex] = useState(-1);
     setOrder(data as Order);
     setEditOrderDate(String((data as any)?.order_date ?? "").slice(0, 10));
       setNotes(String((data as any)?.notes ?? ""));
+    const cname = String((data as any)?.customers?.name ?? "").trim();
+    setCustomerQuery(cname);
+    const cid = Number((data as any)?.customer_id ?? 0);
+    if (cid && cname) setSelectedCustomer({ id: cid, name: cname });
 };
 
   
@@ -101,6 +122,22 @@ const [activeIndex, setActiveIndex] = useState(-1);
     await loadOrder();
   };
 
+
+  const saveCustomer = async () => {
+    if (isLocked) return alert("Ordine stampato: non puoi modificare.");
+    if (!selectedCustomer) return alert("Seleziona un cliente");
+
+    setSavingCustomer(true);
+    const { error } = await supabase
+      .from("orders")
+      .update({ customer_id: selectedCustomer.id })
+      .eq("id", orderId);
+    setSavingCustomer(false);
+
+    if (error) return alert(error.message);
+    await loadOrder();
+  };
+
 const loadItems = async () => {
     const { data, error } = await supabase
       .from("order_items")
@@ -111,6 +148,30 @@ const loadItems = async () => {
     if (error) setErr(error.message);
     else setItems((data ?? []) as OrderItem[]);
   };
+
+
+  useEffect(() => {
+    if (isLocked) return;
+    const q = (customerQuery || "").trim();
+    if (q.length < 2) {
+      setCustomerResults([]);
+      if (!q) setSelectedCustomer(null);
+      return;
+    }
+
+    (async () => {
+      const { data, error } = await supabase
+        .from("customers")
+        .select("id,name")
+        .eq("is_active", true)
+        .ilike("name", `%${q}%`)
+        .order("name", { ascending: true })
+        .limit(20);
+
+      if (error) return;
+      setCustomerResults((data ?? []) as Customer[]);
+    })();
+  }, [customerQuery, isLocked]);
 
   // --- RICERCA PRODOTTI (priorità COD) ---
   const debouncedQuery = useDebouncedValue(productQuery, 220);
@@ -232,7 +293,6 @@ setProductQuery(`${p.cod ?? ""} - ${p.description}`);
     }
   };
 
-  const isLocked = order?.status === "printed";
 
   const saveOrderDate = async () => {
     if (isLocked) return alert("Ordine stampato: non puoi modificare.");
@@ -367,7 +427,66 @@ setProductQuery(`${p.cod ?? ""} - ${p.description}`);
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 900 }}>Ordine #{order.id}</h1>
-      <div style={{ marginTop: 6, fontWeight: 900 }}>Cliente: {order?.customers?.name ?? ""}</div>
+      <div style={{ marginTop: 6, fontWeight: 900, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div>Cliente:</div>
+
+        {isLocked ? (
+          <div>{order?.customers?.name ?? ""}</div>
+        ) : (
+          <div style={{ position: "relative", minWidth: 280, flex: 1 }}>
+            <input
+              value={customerQuery}
+              onChange={(e) => {
+                setCustomerQuery(e.target.value);
+                setSelectedCustomer(null);
+              }}
+              placeholder="Scrivi almeno 2 lettere..."
+              style={{ width: "100%", padding: "6px 10px", borderRadius: 10, border: "1px solid #111", fontWeight: 900 }}
+              inputMode="search"
+              autoComplete="off"
+              disabled={isLocked}
+            />
+
+            {customerResults.length > 0 && !selectedCustomer && (
+              <div style={{ position: "absolute", zIndex: 10, left: 0, right: 0, top: "40px", border: "1px solid #ddd", borderRadius: 10, background: "white", overflow: "hidden", maxHeight: 260, overflowY: "auto" }}>
+                {customerResults.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedCustomer(c);
+                      setCustomerQuery(c.name);
+                      setCustomerResults([]);
+                    }}
+                    style={{ width: "100%", textAlign: "left", padding: "10px 12px", border: "none", borderBottom: "1px solid #eee", background: "white", cursor: "pointer", fontWeight: 900 }}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!isLocked ? (
+          <button
+            type="button"
+            onClick={saveCustomer}
+            disabled={savingCustomer || !selectedCustomer}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 10,
+              border: "1px solid #111",
+              background: savingCustomer ? "#f2f2f2" : "white",
+              fontWeight: 900,
+              cursor: savingCustomer ? "not-allowed" : "pointer",
+              opacity: selectedCustomer ? 1 : 0.6,
+            }}
+          >
+            {savingCustomer ? "Salvo..." : "Salva cliente"}
+          </button>
+        ) : null}
+      </div>
           <div style={{ marginTop: 6, opacity: 0.9, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <div>
               Data:{" "}

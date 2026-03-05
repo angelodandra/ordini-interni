@@ -165,6 +165,7 @@ export default function TopNav() {
         <nav style={{ display: "flex", gap: 8, alignItems: "center", flex: 1 }}>
           <NavLink href="/orders" label="Ordini" />
           <NavLink href="/prints" label="Stampe" />
+          <NavLink href="/inventory" label="Inventario" />
         </nav>
 
         <button

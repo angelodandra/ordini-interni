@@ -138,7 +138,7 @@ export default function InventoryPage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "180px 1fr 160px",
+            gridTemplateColumns: "110px 1fr 90px",
             gap: 0,
             padding: "10px 12px",
             background: "#f7f7f7",
@@ -159,7 +159,7 @@ export default function InventoryPage() {
               key={i.id}
               style={{
                 display: "grid",
-                gridTemplateColumns: "180px 1fr 160px",
+                gridTemplateColumns: "110px 1fr 90px",
                 padding: "10px 12px",
                 borderBottom: "1px solid #f0f0f0",
                 alignItems: "center",

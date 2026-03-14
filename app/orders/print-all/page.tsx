@@ -123,7 +123,7 @@ export default function PrintAllPage() {
       // se l'ordine è vuoto, lo ignoriamo (evita stampe vuote)
       if (orderItems.length === 0) continue;
 
-      const key = `${ord.customer_id != null ? String(ord.customer_id) : "order-" + ord.id}|${ord.order_date}`;
+      const key = `order-${ord.id}`;
 
       // ogni chiave è (cliente,data) -> NON accorpiamo più giorni insieme
       map[key] = {
